@@ -425,8 +425,8 @@ class Game {
     }
     this.stateElement.textContent = message;
 
-    const undoElement = document.getElementById('undo');
-    undoElement.disabled = !(this.debug || this.state === State.DEAD);
+    // const undoElement = document.getElementById('undo');
+    // undoElement.disabled = !(this.debug || this.state === State.DEAD);
   }
 }
 
@@ -825,9 +825,11 @@ function newGame(event) {
 }
 
 function updateSize() {
-  const board = document.getElementById('board');
-  if (board.scrollWidth > board.offsetWidth) {
-    const factor = board.offsetWidth / board.scrollWidth;
+  const board = document.getElementById('world');
+  console.log(board.scrollWidth)
+  console.log(board.offsetWidth)
+  if (board.scrollWidth > window.screen.width) {
+    const factor =window.screen.width/ board.scrollWidth;
     board.style.transform = `scale(${factor})`;
     board.style.transformOrigin = 'top left';
     board.style.height = (board.scrollHeight * factor) + 'px';
