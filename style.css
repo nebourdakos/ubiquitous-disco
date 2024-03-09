@@ -1,0 +1,175 @@
+body {
+    background-color: blue;
+    color: white;
+}
+
+.frogger {
+    font-family: "Nunito", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 800;
+    font-style: normal;
+    color: #fe682f;
+
+    font-size: 4rem;
+
+    /* -webkit-text-stroke: 2px #080808; */
+    /* -webkit-text-stroke: 10px #ffe200; */
+
+    /* text-shadow:
+        -2px -2px 0 #080808,  
+        2px -2px 0 #080808,
+        -2px 2px 0 #080808,
+        2px 2px 0 #080808,
+        -2px 0px 0 #080808,  
+        2px 0px 0 #080808,
+        0px 2px 0 #080808,
+        0px -2px 0 #080808,
+        -5px -5px 0 #ffe200,  
+        5px -5px 0 #ffe200,
+        -5px 5px 0 #ffe200,
+        5px 5px 0 #ffe200,
+        -7px 0px 0 #ffe200,  
+        7px 0px 0 #ffe200,
+        0px 7px 0 #ffe200,
+        0px -7px 0 #ffe200; */
+        /* z-index: 10; */
+
+        position: relative;
+
+        text-align: center;
+       
+}
+
+.frogger::after {
+    position: absolute;
+    z-index: -2;
+    content: "FROGGER";
+    -webkit-text-stroke: 14px #ffe200;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    text-align: center;
+}
+
+.frogger::before {
+    position: absolute;
+    z-index: -1;
+    content: "FROGGER";
+    -webkit-text-stroke: 5px black;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    text-align: center;
+}
+
+.board {
+    font-size: 0px;
+    white-space: nowrap;
+}
+
+.cell {
+    font-size: 28px;
+    display: inline-block;
+    text-align: center;
+    width: 30px;
+    height: 30px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+
+    position: relative;
+}
+
+.cell.unknown::after {
+    content: "🟦";
+}
+
+/* .cell.hint::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    bottom: 3px;
+    right: 3px;
+    border: 2px solid;
+    line-height: 18px;
+} */
+
+/* .cell.hint-safe::before { color: #9c9; border-color: #9c9; }
+.cell.hint-unknown::before { color: #da0; border-color: #da0; }
+.cell.hint-mine::before { color: #e77; border-color: #e77; } */
+
+/* .cell.hint-safe::after { content: "✅"}  bullet */
+.cell.hint-unknown::after { content: "💦"}  /* bullet */
+/* .cell.hint-mine::after { content: "❌"}  multiplication X */
+
+.cell.bomb::before, .cell.bomb-win::before, .cell.flag::before { content: ""; }
+
+.cell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    line-height: 28px;
+
+    /* Force load SVG */
+    background: url(sprites.svg) -1px -31px;
+}
+/* .cell.label--7::after { content: "-7"; }
+.cell.label--6::after { content: "-6"; }
+.cell.label--5::after { content: "-5"; }
+.cell.label--4::after { content: "-4"; }
+.cell.label--3::after { content: "-3"; }
+.cell.label--2::after { content: "-2"; }
+.cell.label--1::after { content: "-1"; }
+.cell.label-0::after  { content:  "0"; } */
+.cell.label-1::after  { content:  "1️⃣"; }
+.cell.label-2::after  { content:  "2️⃣"; }
+.cell.label-3::after  { content:  "3️⃣"; }
+.cell.label-4::after  { content:  "4️⃣"; }
+.cell.label-5::after  { content:  "5️⃣"; }
+.cell.label-6::after  { content:  "6️⃣"; }
+.cell.label-7::after  { content:  "7️⃣"; }
+.cell.label-8::after  { content:  "8️⃣"; }
+
+.cell.bomb-win::after {
+    background: url(sprites.svg) -61px -1px;
+}
+
+.cell.flag::after {
+    content: "🪷";
+}
+
+.cell.unsure::after {
+    content: "❓";
+}
+
+.cell.bomb::after {
+    content: "🐸";
+}
+
+.cell.clickable {
+    cursor: pointer;
+}
+
+.cell.clickable:hover::after {
+    opacity: 0.8;
+}
+
+.buttons {
+    margin-top: 1em;
+}
+
+h2 {
+    margin-top: 1em;
+}
+
+#hint.hidden {
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 1s;
+}
