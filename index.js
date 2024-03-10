@@ -408,7 +408,7 @@ class Game {
     switch (this.state) {
       case State.PLAYING: {
         const numFlags = this.countFlags();
-        message = `Mines: ${numFlags}/${this.numMines}`;
+        message = `Frogs: ${numFlags}/${this.numMines}`;
         if (this.debug) {
           message += ', ' + this.solver.debugMessage();
           message += `, time: ${this.lastDuration/1000} s`;
@@ -826,8 +826,6 @@ function newGame(event) {
 
 function updateSize() {
   const board = document.getElementById('world');
-  console.log(board.scrollWidth)
-  console.log(board.offsetWidth)
   if (board.scrollWidth > window.screen.width) {
     const factor =window.screen.width/ board.scrollWidth;
     board.style.transform = `scale(${factor})`;
