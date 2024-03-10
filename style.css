@@ -137,7 +137,8 @@ body {
 .cell.label-8::after  { content:  "8️⃣"; }
 
 .cell.bomb-win::after {
-    background: url(sprites.svg) -61px -1px;
+    content: "🪷";
+    /* background: url(sprites.svg) -61px -1px; */
 }
 
 .cell.flag::after {
