@@ -1,15 +1,15 @@
 /* global Sat */
 
 const State = {
-  PLAYING: 'PLAYING',
-  WIN: 'WIN',
-  DEAD: 'DEAD',
+  PLAYING: "PLAYING",
+  WIN: "WIN",
+  DEAD: "DEAD",
 };
 
 const Hint = {
-  MINE: 'MINE',
-  UNKNOWN: 'UNKNOWN',
-  SAFE: 'SAFE',
+  MINE: "MINE",
+  UNKNOWN: "UNKNOWN",
+  SAFE: "SAFE",
 };
 
 class Game {
@@ -35,30 +35,80 @@ class Game {
     this.recalc();
   }
 
+  persistToSessionStorage() {
+    const encoded = btoa(
+      JSON.stringify({
+        width: this.width,
+        height: this.height,
+        numMines: this.numMines,
+        map: this.map.toJSON(),
+        flags: this.flags,
+        unsure: this.unsure,
+        numRevealed: this.numRevealed,
+        undoStack: this.undoStack,
+        state: this.state,
+        debug: this.debug,
+        allowOutside: this.allowOutside,
+        safeMode: this.safeMode,
+        countdownMode: this.countdownMode,
+        lastDuration: this.lastDuration,
+      })
+    );
+    sessionStorage.setItem("gs", encoded);
+  }
+
+  static loadFromSessionStorage() {
+    const encoded = sessionStorage.getItem("gs");
+    const decoded = JSON.parse(atob(encoded));
+    let game = new Game(decoded.width, decoded.height, decoded.numMines);
+    game.map = LabelMap.fromJSON(decoded.map);
+    game.flags = decoded.flags;
+    game.unsure = decoded.unsure;
+    game.numRevealed = decoded.numRevealed;
+    game.undoStack = decoded.undoStack;
+    game.state = decoded.state;
+    game.debug = decoded.debug;
+    game.allowOutside = decoded.allowOutside;
+    game.safeMode = decoded.safeMode;
+    game.countdownMode = decoded.countdownMode;
+    game.lastDuration = decoded.lastDuration;
+    game.recalc();
+    return game;
+  }
+
+  clearSessionStorage() {
+    sessionStorage.removeItem("gs");
+  }
+
   mount(gameElement) {
-    const boardElement = document.createElement('div');
-    boardElement.className = 'board';
-    boardElement.id = 'board';
+    const boardElement = document.createElement("div");
+    boardElement.className = "board";
+    boardElement.id = "board";
     gameElement.appendChild(boardElement);
 
     this.cells = [];
 
-    const isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
+    const isTouch =
+      "ontouchstart" in window ||
+      navigator.MaxTouchPoints > 0 ||
+      navigator.msMaxTouchPoints > 0;
 
     for (let y = 0; y < this.height; y++) {
       this.cells.push([]);
-      const row = document.createElement('div');
-      row.className = 'board-row';
+      const row = document.createElement("div");
+      row.className = "board-row";
       for (let x = 0; x < this.width; x++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell clickable unknown';
-        cell.onclick = e => this.cellClick(e, x, y);
-        cell.onmousedown = e => this.cellMouseDown(e, x, y);
-        cell.ondblclick = e => this.cellDblClick(e, x, y);
-        cell.oncontextmenu = e => e.preventDefault();
+        const cell = document.createElement("div");
+        cell.className = "cell clickable unknown";
+        cell.onclick = (e) => this.cellClick(e, x, y);
+        cell.onmousedown = (e) => this.cellMouseDown(e, x, y);
+        cell.ondblclick = (e) => this.cellDblClick(e, x, y);
+        cell.oncontextmenu = (e) => e.preventDefault();
         if (isTouch) {
-          cell.setAttribute('data-long-press-delay', 500);
-          cell.addEventListener('long-press', e => this.cellLongPress(e, x, y));
+          cell.setAttribute("data-long-press-delay", 500);
+          cell.addEventListener("long-press", (e) =>
+            this.cellLongPress(e, x, y)
+          );
         }
         row.appendChild(cell);
         this.cells[y].push(cell);
@@ -66,10 +116,10 @@ class Game {
       boardElement.appendChild(row);
     }
 
-    this.stateElement = document.createElement('div');
+    this.stateElement = document.createElement("div");
     gameElement.appendChild(this.stateElement);
 
-    this.hintElement = document.getElementById('hint');
+    this.hintElement = document.getElementById("hint");
 
     this.refresh();
   }
@@ -89,7 +139,7 @@ class Game {
   }
 
   cellMouseDown(e, x, y) {
-    switch(e.button) {
+    switch (e.button) {
       case 1:
         e.preventDefault();
         this.revealAround(x, y);
@@ -135,7 +185,13 @@ class Game {
   }
 
   reveal(x, y, isAround) {
-    if (!(this.state === State.PLAYING && this.map.labels[y][x] === null && !this.flags[y][x])) {
+    if (
+      !(
+        this.state === State.PLAYING &&
+        this.map.labels[y][x] === null &&
+        !this.flags[y][x]
+      )
+    ) {
       return;
     }
 
@@ -152,9 +208,15 @@ class Game {
 
       let outsideIsSafe;
       if (this.allowOutside) {
-        outsideIsSafe = this.map.boundary.length === 0 || this.solver.outsideIsSafe() || (!hasSafeCells && this.solver.outsideCanBeSafe());
+        outsideIsSafe =
+          this.map.boundary.length === 0 ||
+          this.solver.outsideIsSafe() ||
+          (!hasSafeCells && this.solver.outsideCanBeSafe());
       } else {
-        outsideIsSafe = this.map.boundary.length === 0 || this.solver.outsideIsSafe() || !hasNonDeadlyCells;
+        outsideIsSafe =
+          this.map.boundary.length === 0 ||
+          this.solver.outsideIsSafe() ||
+          !hasNonDeadlyCells;
       }
 
       if (outsideIsSafe) {
@@ -170,8 +232,10 @@ class Game {
       const idx = this.map.boundaryGrid[y][x];
 
       let shape;
-      if (this.solver.canBeSafe(idx) && (
-        !this.solver.canBeDangerous(idx) || !hasSafeCells)) {
+      if (
+        this.solver.canBeSafe(idx) &&
+        (!this.solver.canBeDangerous(idx) || !hasSafeCells)
+      ) {
         shape = this.solver.anySafeShape(idx);
       } else {
         shape = this.solver.anyDangerousShape(idx);
@@ -199,22 +263,17 @@ class Game {
 
     let message;
     if (this.hasWrongFlags()) {
-      message = 'You flagged a cell that could be empty.';
+      message = "You flagged a cell that could be empty.";
     } else if (this.map.boundary.length === 0) {
-      message = 'You can play anywhere!';
+      message = "You can play anywhere!";
     } else if (this.solver.hasSafeCells()) {
-      message = 'There are safe cells.';
+      message = "There are safe cells.";
     } else if (this.solver.hasNonDeadlyCells()) {
-      message = 'There are no safe cells, but you can guess.';
+      message = "There are no safe cells, but you can guess.";
     } else {
-      message = 'All surrounding cells are deadly. You need to play elsewhere.';
+      message = "All surrounding cells are deadly. You need to play elsewhere.";
     }
-
-    this.hintElement.classList.remove('hidden');
-    this.hintElement.innerText = message;
-    setTimeout(() => {
-      this.hintElement.classList.add('hidden');
-    }, 1000);
+    console.log(message);
   }
 
   hasWrongFlags() {
@@ -246,8 +305,12 @@ class Game {
       }
     }
 
-    this.undoStack[this.undoStack.length-1].push({
-      x: x, y: y, flag: this.flags[y][x], unsure: this.unsure[y][x]});
+    this.undoStack[this.undoStack.length - 1].push({
+      x: x,
+      y: y,
+      flag: this.flags[y][x],
+      unsure: this.unsure[y][x],
+    });
 
     this.flags[y][x] = false;
     this.unsure[y][x] = false;
@@ -362,6 +425,7 @@ class Game {
   }
 
   refresh() {
+    this.persistToSessionStorage();
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         const label = this.map.labels[y][x];
@@ -371,56 +435,64 @@ class Game {
         const hint = this.hints[y][x];
 
         let className;
-        if (this.state === State.DEAD && mine && x === this.deathX && y === this.deathY) {
-          className = 'known bomb';
+        if (
+          this.state === State.DEAD &&
+          mine &&
+          x === this.deathX &&
+          y === this.deathY
+        ) {
+          className = "known bomb";
         } else if (this.state === State.DEAD && mine) {
-          className = 'unknown bomb';
+          className = "unknown bomb";
         } else if (this.state === State.WIN && mine) {
-          className = 'unknown bomb-win';
+          className = "unknown bomb-win";
         } else if (label !== null && label > 0) {
-            if (this.countdownMode) {
-                const modLabel = label - this.countFlagsAround(x, y);
-                className = `known label-${modLabel}`;
-            } else {
-                className = `known label-${label}`;
-            }
+          if (this.countdownMode) {
+            const modLabel = label - this.countFlagsAround(x, y);
+            className = `known label-${modLabel}`;
+          } else {
+            className = `known label-${label}`;
+          }
         } else if (label === 0) {
-          className = 'known';
+          className = "known";
         } else if (flag) {
-          className = 'unknown clickable flag';
+          className = "unknown clickable flag";
         } else if (unsure) {
-          className = 'unknown clickable unsure';
+          className = "unknown clickable unsure";
         } else if (this.state === State.PLAYING) {
-          className = 'unknown clickable';
+          className = "unknown clickable";
         } else {
-          className = 'unknown';
+          className = "unknown";
         }
 
         if (hint !== null && (this.state === State.DEAD || this.debug)) {
           className += ` hint hint-${hint.toLowerCase()}`;
         }
 
-        this.cells[y][x].className = 'cell ' + className;
+        this.cells[y][x].className = "cell " + className;
       }
     }
 
     let message;
     switch (this.state) {
-      case State.PLAYING: {
-        const numFlags = this.countFlags();
-        message = `Frogs: ${numFlags}/${this.numMines}`;
-        if (this.debug) {
-          message += ', ' + this.solver.debugMessage();
-          message += `, time: ${this.lastDuration/1000} s`;
+      case State.PLAYING:
+        {
+          const numFlags = this.countFlags();
+          message = `Frogs: ${numFlags}/${this.numMines}`;
+          if (this.debug) {
+            message += ", " + this.solver.debugMessage();
+            message += `, time: ${this.lastDuration / 1000} s`;
+          }
         }
-      }
 
         break;
       case State.WIN:
-        message = 'You win!';
+        message = "You win!";
+        this.clearSessionStorage();
         break;
       case State.DEAD:
-        message = 'You lose!';
+        message = "You lose!";
+        this.clearSessionStorage();
         break;
     }
     this.stateElement.textContent = message;
@@ -431,11 +503,11 @@ class Game {
 }
 
 function* neighbors(x, y, width, height) {
-  for (let y0 = Math.max(y - 1, 0); y0 < Math.min(y + 2, height) ; y0++) {
+  for (let y0 = Math.max(y - 1, 0); y0 < Math.min(y + 2, height); y0++) {
     for (let x0 = Math.max(x - 1, 0); x0 < Math.min(x + 2, width); x0++) {
-        if (y0 !== y || x0 !== x) {
-          yield [x0, y0];
-        }
+      if (y0 !== y || x0 !== x) {
+        yield [x0, y0];
+      }
     }
   }
 }
@@ -447,6 +519,23 @@ class LabelMap {
     this.labels = makeGrid(width, height, null);
     this.cache = makeGrid(width, height, null);
     this.recalc();
+  }
+
+  toJSON() {
+    return {
+      width: this.width,
+      height: this.height,
+      labels: this.labels,
+      cache: this.cache,
+    };
+  }
+
+  static fromJSON(labelMapJSON) {
+    let labelMap = new LabelMap(labelMapJSON.width, labelMapJSON.height);
+    labelMap.labels = labelMapJSON.labels;
+    labelMap.cache = labelMapJSON.cache;
+    labelMap.recalc();
+    return labelMap;
   }
 
   recalc() {
@@ -479,8 +568,7 @@ class LabelMap {
           }
           // If this label trivially proves all adjacent boundary squares to be
           // mines, mark them as such.
-          if (neighboringBoundary.length === this.labels[y][x] &&
-              hasUncached) {
+          if (neighboringBoundary.length === this.labels[y][x] && hasUncached) {
             for (const trivialMineId of neighboringBoundary) {
               this.setCache(trivialMineId, true);
             }
@@ -488,9 +576,8 @@ class LabelMap {
         }
       }
     }
-    this.numOutside = (this.width * this.height)
-                      - revealedSquares
-                      - this.boundary.length;
+    this.numOutside =
+      this.width * this.height - revealedSquares - this.boundary.length;
   }
 
   setCache(i, val) {
@@ -531,9 +618,12 @@ class Shape {
       const toSelect = [];
       for (let y = 0; y < this.map.height; y++) {
         for (let x = 0; x < this.map.width; x++) {
-          if (this.map.labels[y][x] === null && this.map.boundaryGrid[y][x] === null
-            && !(x === exceptX && y === exceptY)) {
-              toSelect.push([x, y]);
+          if (
+            this.map.labels[y][x] === null &&
+            this.map.boundaryGrid[y][x] === null &&
+            !(x === exceptX && y === exceptY)
+          ) {
+            toSelect.push([x, y]);
           }
         }
       }
@@ -614,22 +704,26 @@ class Solver {
   run() {
     for (let i = 0; i < this.labels.length; i++) {
       const label = this.labels[i];
-      const vars = this.labelToMine[i].map(n => n+1);
+      const vars = this.labelToMine[i].map((n) => n + 1);
 
       this.sat.assertAtLeast(vars, label);
       this.sat.assertAtMost(vars, label);
     }
     for (let i = 0; i < this.numMines; i++) {
       if (this.cache[i] === true) {
-        this.sat.assert([i+1]);
+        this.sat.assert([i + 1]);
       } else if (this.cache[i] === false) {
-        this.sat.assert([-(i+1)]);
+        this.sat.assert([-(i + 1)]);
       }
     }
 
-    this.sat.addCounter(this.uncachedMines.map(m => m+1));
-    this.sat.assertCounterAtLeast(Math.max(0, this.minMines - this.numCachedTrue));
-    this.sat.assertCounterAtMost(Math.max(0, this.maxMines - this.numCachedTrue));
+    this.sat.addCounter(this.uncachedMines.map((m) => m + 1));
+    this.sat.assertCounterAtLeast(
+      Math.max(0, this.minMines - this.numCachedTrue)
+    );
+    this.sat.assertCounterAtMost(
+      Math.max(0, this.maxMines - this.numCachedTrue)
+    );
 
     for (let i = 0; i < this.numMines; i++) {
       if (this.cache[i] !== null) {
@@ -644,7 +738,7 @@ class Solver {
       }
 
       if (this._canBeSafe[i] === null) {
-        const solution = this.sat.solveWith(() => this.sat.assert([-(i+1)]));
+        const solution = this.sat.solveWith(() => this.sat.assert([-(i + 1)]));
         if (solution !== null) {
           this.update(solution);
         } else {
@@ -653,7 +747,7 @@ class Solver {
       }
 
       if (this._canBeDangerous[i] === null) {
-        const solution = this.sat.solveWith(() => this.sat.assert([i+1]));
+        const solution = this.sat.solveWith(() => this.sat.assert([i + 1]));
         if (solution !== null) {
           this.update(solution);
         } else {
@@ -671,7 +765,7 @@ class Solver {
 
   update(solution) {
     for (let i = 0; i < this.numMines; i++) {
-      if (solution[i+1]) {
+      if (solution[i + 1]) {
         this._canBeDangerous[i] = true;
       } else {
         this._canBeSafe[i] = true;
@@ -683,7 +777,7 @@ class Solver {
     if (!solution) {
       return null;
     }
-    const mines = solution.slice(1, this.numMines+1);
+    const mines = solution.slice(1, this.numMines + 1);
     let sum = 0;
     for (const m of mines) {
       if (m) {
@@ -698,19 +792,27 @@ class Solver {
   }
 
   anyShapeWithOneEmpty() {
-    return this.shape(this.sat.solveWith(() => this.sat.assertCounterAtLeast(this.minMines - this.numCachedTrue + 1)));
+    return this.shape(
+      this.sat.solveWith(() =>
+        this.sat.assertCounterAtLeast(this.minMines - this.numCachedTrue + 1)
+      )
+    );
   }
 
   anyShapeWithRemaining() {
-    return this.shape(this.sat.solveWith(() => this.sat.assertCounterAtMost(this.maxMines - this.numCachedTrue - 1)));
+    return this.shape(
+      this.sat.solveWith(() =>
+        this.sat.assertCounterAtMost(this.maxMines - this.numCachedTrue - 1)
+      )
+    );
   }
 
   anySafeShape(idx) {
-    return this.shape(this.sat.solveWith(() => this.sat.assert([-(idx+1)])));
+    return this.shape(this.sat.solveWith(() => this.sat.assert([-(idx + 1)])));
   }
 
   anyDangerousShape(idx) {
-    return this.shape(this.sat.solveWith(() => this.sat.assert([idx+1])));
+    return this.shape(this.sat.solveWith(() => this.sat.assert([idx + 1])));
   }
 
   canBeSafe(idx) {
@@ -741,21 +843,31 @@ class Solver {
 
   // Check if there is no possibility that outside will contain a mine
   outsideIsSafe() {
-    return this.numMines >= this.maxMines &&
-            !this.sat.solveWith(() => this.sat.assertCounterAtMost(this.maxMines - this.numCachedTrue - 1));
+    return (
+      this.numMines >= this.maxMines &&
+      !this.sat.solveWith(() =>
+        this.sat.assertCounterAtMost(this.maxMines - this.numCachedTrue - 1)
+      )
+    );
   }
 
   // Check if there is a possibility that outside will NOT contain a mine
   outsideCanBeSafe() {
     // we need to have at least minMines+1, if we have minMines that means
     // all the outside squares contain mines.
-    return this.minMines < 0 ||
-      !!this.sat.solveWith(() => this.sat.assertCounterAtLeast(this.minMines - this.numCachedTrue + 1));
+    return (
+      this.minMines < 0 ||
+      !!this.sat.solveWith(() =>
+        this.sat.assertCounterAtLeast(this.minMines - this.numCachedTrue + 1)
+      )
+    );
   }
 
   debugMessage() {
-    return `boundary: ${this.numMines}, uncached: ${this.uncachedMines.length}, ` +
-      `clauses: ${this.sat.clauses.length}, minMines: ${this.minMines}, maxMines: ${this.maxMines}`;
+    return (
+      `boundary: ${this.numMines}, uncached: ${this.uncachedMines.length}, ` +
+      `clauses: ${this.sat.clauses.length}, minMines: ${this.minMines}, maxMines: ${this.maxMines}`
+    );
   }
 }
 
@@ -797,10 +909,10 @@ function makeGrid(width, height, value) {
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const x = a[i];
-      a[i] = a[j];
-      a[j] = x;
+    const j = Math.floor(Math.random() * (i + 1));
+    const x = a[i];
+    a[i] = a[j];
+    a[j] = x;
   }
   return a;
 }
@@ -815,25 +927,28 @@ function newGame(event) {
   const width = 15;
   const height = 15;
   const numMines = 50;
-
-  const gameElement = document.getElementById('game');
-  gameElement.innerHTML = '';
   game = new Game(width, height, numMines);
+  start(game);
+}
+
+function start(game) {
+  const gameElement = document.getElementById("game");
+  gameElement.innerHTML = "";
   game.mount(gameElement);
   updateSettings();
   updateSize();
 }
 
 function updateSize() {
-  const board = document.getElementById('world');
+  const board = document.getElementById("world");
   if (board.scrollWidth > window.screen.width) {
-    const factor =window.screen.width/ board.scrollWidth;
+    const factor = window.screen.width / board.scrollWidth;
     board.style.transform = `scale(${factor})`;
-    board.style.transformOrigin = 'top left';
-    board.style.height = (board.scrollHeight * factor) + 'px';
+    board.style.transformOrigin = "top left";
+    board.style.height = board.scrollHeight * factor + "px";
   } else {
-    board.style.transform = '';
-    board.style.height = 'auto';
+    board.style.transform = "";
+    board.style.height = "auto";
   }
 }
 
@@ -845,7 +960,7 @@ function undo() {
   game.undo();
 }
 
-const SETTINGS = ['debug', 'allowOutside', 'safeMode', 'countdownMode'];
+const SETTINGS = ["debug", "allowOutside", "safeMode", "countdownMode"];
 
 function updateSettings() {
   for (const name of SETTINGS) {
@@ -854,6 +969,14 @@ function updateSettings() {
   game.refresh();
 }
 
-window.addEventListener('resize', updateSize);
-// document.getElementById('new-game').click();  // this will trigger validation
-newGame();
+window.addEventListener("resize", updateSize);
+
+try {
+  game = Game.loadFromSessionStorage();
+} catch (e) {
+  const width = 15;
+  const height = 15;
+  const numMines = 50;
+  game = new Game(width, height, numMines);
+}
+start(game);
