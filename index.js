@@ -12,6 +12,8 @@ const Hint = {
   SAFE: "SAFE",
 };
 
+let storage = localStorage;
+
 class Game {
   constructor(width, height, numMines) {
     this.width = width;
@@ -35,7 +37,7 @@ class Game {
     this.recalc();
   }
 
-  persistToSessionStorage() {
+  persistToStorage() {
     const encoded = btoa(
       JSON.stringify({
         width: this.width,
@@ -54,11 +56,11 @@ class Game {
         lastDuration: this.lastDuration,
       })
     );
-    sessionStorage.setItem("gs", encoded);
+    storage.setItem("gs", encoded);
   }
 
-  static loadFromSessionStorage() {
-    const encoded = sessionStorage.getItem("gs");
+  static loadFromStorage() {
+    const encoded = storage.getItem("gs");
     const decoded = JSON.parse(atob(encoded));
     let game = new Game(decoded.width, decoded.height, decoded.numMines);
     game.map = LabelMap.fromJSON(decoded.map);
@@ -76,8 +78,8 @@ class Game {
     return game;
   }
 
-  clearSessionStorage() {
-    sessionStorage.removeItem("gs");
+  clearStorage() {
+    storage.removeItem("gs");
   }
 
   mount(gameElement) {
@@ -425,7 +427,7 @@ class Game {
   }
 
   refresh() {
-    this.persistToSessionStorage();
+    this.persistToStorage();
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         const label = this.map.labels[y][x];
@@ -488,11 +490,11 @@ class Game {
         break;
       case State.WIN:
         message = "You win!";
-        this.clearSessionStorage();
+        this.clearStorage();
         break;
       case State.DEAD:
         message = "You lose!";
-        this.clearSessionStorage();
+        this.clearStorage();
         break;
     }
     this.stateElement.textContent = message;
@@ -972,7 +974,7 @@ function updateSettings() {
 window.addEventListener("resize", updateSize);
 
 try {
-  game = Game.loadFromSessionStorage();
+  game = Game.loadFromStorage();
 } catch (e) {
   const width = 15;
   const height = 15;
