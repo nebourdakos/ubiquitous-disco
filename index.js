@@ -117,8 +117,8 @@ class Game {
     const decoded = JSON.parse(atob(encoded));
 
     console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss);
-    document.getElementById("wins").textContent = "Wins: " + decoded.wins
-    document.getElementById("loss").textContent = "Losses: " + decoded.loss
+    document.getElementById("wins").textContent = "Wins: " + decoded.wins;
+    document.getElementById("loss").textContent = "Losses: " + decoded.loss;
   }
 
   clearStorage() {
