@@ -95,12 +95,11 @@ class Game {
   score(win) {
     const encoded = storage.getItem("z");
 
-    let decoded
+    let decoded;
     try {
       decoded = JSON.parse(atob(encoded));
- 
     } catch (e) {
-      decoded = {wins: 0, loss: 0}
+      decoded = { wins: 0, loss: 0 };
     }
 
     if (win) {
@@ -111,15 +110,13 @@ class Game {
 
     const encoded2 = btoa(JSON.stringify(decoded));
     storage.setItem("z", encoded2);
-
-
   }
 
   dumpScore() {
     const encoded = storage.getItem("z");
     const decoded = JSON.parse(atob(encoded));
 
-    console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss)
+    console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss);
   }
 
   clearStorage() {
@@ -540,7 +537,7 @@ class Game {
     }
     this.stateElement.textContent = message;
 
-    this.dumpScore()
+    this.dumpScore();
 
     // const undoElement = document.getElementById('undo');
     // undoElement.disabled = !(this.debug || this.state === State.DEAD);
