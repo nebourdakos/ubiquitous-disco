@@ -38,6 +38,20 @@ class Game {
   }
 
   persistToStorage() {
+    // If the old state is null, it means the game has either not started, or
+    // has been lost (maybe in another window/tab). If nothing has been revealed
+    // it's a new game, so perstist. Otherwise, clear the game because they are
+    // cheaterz.
+    const oldState = storage.getItem("gs");
+    if (oldState === null && this.numRevealed > 0) {
+      console.log("Resetting game");
+      const width = 15;
+      const height = 15;
+      const numMines = 50;
+      game = new Game(width, height, numMines);
+      start(game);
+      return;
+    }
     const encoded = btoa(
       JSON.stringify({
         width: this.width,
@@ -76,6 +90,36 @@ class Game {
     game.lastDuration = decoded.lastDuration;
     game.recalc();
     return game;
+  }
+
+  score(win) {
+    const encoded = storage.getItem("z");
+
+    let decoded
+    try {
+      decoded = JSON.parse(atob(encoded));
+ 
+    } catch (e) {
+      decoded = {wins: 0, loss: 0}
+    }
+
+    if (win) {
+      decoded.wins = (decoded.wins ?? 0) + 1;
+    } else {
+      decoded.loss = (decoded.loss ?? 0) + 1;
+    }
+
+    const encoded2 = btoa(JSON.stringify(decoded));
+    storage.setItem("z", encoded2);
+
+
+  }
+
+  dumpScore() {
+    const encoded = storage.getItem("z");
+    const decoded = JSON.parse(atob(encoded));
+
+    console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss)
   }
 
   clearStorage() {
@@ -259,23 +303,22 @@ class Game {
   }
 
   hint() {
-    if (this.state !== State.PLAYING) {
-      return;
-    }
-
-    let message;
-    if (this.hasWrongFlags()) {
-      message = "You flagged a cell that could be empty.";
-    } else if (this.map.boundary.length === 0) {
-      message = "You can play anywhere!";
-    } else if (this.solver.hasSafeCells()) {
-      message = "There are safe cells.";
-    } else if (this.solver.hasNonDeadlyCells()) {
-      message = "There are no safe cells, but you can guess.";
-    } else {
-      message = "All surrounding cells are deadly. You need to play elsewhere.";
-    }
-    console.log(message);
+    // if (this.state !== State.PLAYING) {
+    //   return;
+    // }
+    // let message;
+    // if (this.hasWrongFlags()) {
+    //   message = "You flagged a cell that could be empty.";
+    // } else if (this.map.boundary.length === 0) {
+    //   message = "You can play anywhere!";
+    // } else if (this.solver.hasSafeCells()) {
+    //   message = "There are safe cells.";
+    // } else if (this.solver.hasNonDeadlyCells()) {
+    //   message = "There are no safe cells, but you can guess.";
+    // } else {
+    //   message = "All surrounding cells are deadly. You need to play elsewhere.";
+    // }
+    // console.log(message);
   }
 
   hasWrongFlags() {
@@ -335,29 +378,25 @@ class Game {
   }
 
   undo() {
-    if (this.undoStack.length === 0) {
-      return;
-    }
-    const undos = this.undoStack.pop();
-    for (const undo of undos) {
-      this.map.labels[undo.y][undo.x] = null;
-      this.numRevealed--;
-
-      this.flags[undo.y][undo.x] = undo.flag;
-      this.unsure[undo.y][undo.x] = undo.unsure;
-    }
-
-    if (this.state === State.WIN || this.state === State.DEAD) {
-      this.state = State.PLAYING;
-      this.mineGrid = null;
-      this.deathX = null;
-      this.deathY = null;
-    }
-
-    this.map.resetCache();
-
-    this.recalc();
-    this.refresh();
+    // if (this.undoStack.length === 0) {
+    //   return;
+    // }
+    // const undos = this.undoStack.pop();
+    // for (const undo of undos) {
+    //   this.map.labels[undo.y][undo.x] = null;
+    //   this.numRevealed--;
+    //   this.flags[undo.y][undo.x] = undo.flag;
+    //   this.unsure[undo.y][undo.x] = undo.unsure;
+    // }
+    // if (this.state === State.WIN || this.state === State.DEAD) {
+    //   this.state = State.PLAYING;
+    //   this.mineGrid = null;
+    //   this.deathX = null;
+    //   this.deathY = null;
+    // }
+    // this.map.resetCache();
+    // this.recalc();
+    // this.refresh();
   }
 
   recalc() {
@@ -491,13 +530,17 @@ class Game {
       case State.WIN:
         message = "You win!";
         this.clearStorage();
+        this.score(true);
         break;
       case State.DEAD:
         message = "You lose!";
         this.clearStorage();
+        this.score(false);
         break;
     }
     this.stateElement.textContent = message;
+
+    this.dumpScore()
 
     // const undoElement = document.getElementById('undo');
     // undoElement.disabled = !(this.debug || this.state === State.DEAD);
