@@ -20,7 +20,6 @@ class Game {
     this.height = height;
     this.numMines = numMines;
     this.map = new LabelMap(this.width, this.height);
-    //this.mines = makeGrid(this.width, this.height, false);
     this.flags = makeGrid(this.width, this.height, false);
     this.unsure = makeGrid(this.width, this.height, false);
     this.numRevealed = 0;
@@ -146,15 +145,8 @@ class Game {
         const cell = document.createElement("div");
         cell.className = "cell clickable unknown";
         cell.onclick = (e) => this.cellClick(e, x, y);
-        cell.onmousedown = (e) => this.cellMouseDown(e, x, y);
         cell.ondblclick = (e) => this.cellDblClick(e, x, y);
         cell.oncontextmenu = (e) => e.preventDefault();
-        if (isTouch) {
-          cell.setAttribute("data-long-press-delay", 500);
-          cell.addEventListener("long-press", (e) =>
-            this.cellLongPress(e, x, y)
-          );
-        }
         row.appendChild(cell);
         this.cells[y].push(cell);
       }
@@ -171,42 +163,20 @@ class Game {
 
   cellClick(e, x, y) {
     e.preventDefault();
-    if (!this.safeMode) {
+    if (!this.solver.hasSafeCells()) {
       this.reveal(x, y);
-    }
-  }
-
-  clearTimeout() {
-    if (this.timeoutId) {
-      clearTimeout(this.timeoutId);
-      this.timeoutId = null;
-    }
-  }
-
-  cellMouseDown(e, x, y) {
-    switch (e.button) {
-      case 1:
-        e.preventDefault();
-        this.revealAround(x, y);
-        break;
-      case 2:
-        e.preventDefault();
-        this.toggleFlag(x, y);
-        break;
+    } else {
+      this.toggleFlag(x, y);
     }
   }
 
   cellDblClick(e, x, y) {
     e.preventDefault();
-    if (this.safeMode && this.map.labels[y][x] === null) {
+    if (this.map.labels[y][x] === null && !this.flags[y][x]) {
       this.reveal(x, y);
     } else {
       this.revealAround(x, y);
     }
-  }
-
-  cellLongPress(e, x, y) {
-    this.toggleFlag(x, y);
   }
 
   revealAround(x, y) {
@@ -268,8 +238,9 @@ class Game {
         const shape = this.solver.anyShapeWithOneEmpty();
         mineGrid = shape.mineGridWithEmpty(x, y);
       } else {
-        const shape = this.solver.anyShapeWithRemaining();
-        mineGrid = shape.mineGridWithMine(x, y);
+        // const shape = this.solver.anyShapeWithRemaining();
+        // mineGrid = shape.mineGridWithMine(x, y);
+        return;
       }
     } else {
       // Clicked on boundary.
@@ -301,24 +272,7 @@ class Game {
     this.refresh();
   }
 
-  hint() {
-    // if (this.state !== State.PLAYING) {
-    //   return;
-    // }
-    // let message;
-    // if (this.hasWrongFlags()) {
-    //   message = "You flagged a cell that could be empty.";
-    // } else if (this.map.boundary.length === 0) {
-    //   message = "You can play anywhere!";
-    // } else if (this.solver.hasSafeCells()) {
-    //   message = "There are safe cells.";
-    // } else if (this.solver.hasNonDeadlyCells()) {
-    //   message = "There are no safe cells, but you can guess.";
-    // } else {
-    //   message = "All surrounding cells are deadly. You need to play elsewhere.";
-    // }
-    // console.log(message);
-  }
+  hint() {}
 
   hasWrongFlags() {
     for (let y = 0; y < this.height; y++) {
@@ -376,27 +330,7 @@ class Game {
     }
   }
 
-  undo() {
-    // if (this.undoStack.length === 0) {
-    //   return;
-    // }
-    // const undos = this.undoStack.pop();
-    // for (const undo of undos) {
-    //   this.map.labels[undo.y][undo.x] = null;
-    //   this.numRevealed--;
-    //   this.flags[undo.y][undo.x] = undo.flag;
-    //   this.unsure[undo.y][undo.x] = undo.unsure;
-    // }
-    // if (this.state === State.WIN || this.state === State.DEAD) {
-    //   this.state = State.PLAYING;
-    //   this.mineGrid = null;
-    //   this.deathX = null;
-    //   this.deathY = null;
-    // }
-    // this.map.resetCache();
-    // this.recalc();
-    // this.refresh();
-  }
+  undo() {}
 
   recalc() {
     const timeStart = new Date();
@@ -430,11 +364,8 @@ class Game {
     if (!(this.state === State.PLAYING && this.map.labels[y][x] === null)) {
       return;
     }
-    if (this.unsure[y][x]) {
-      this.unsure[y][x] = false;
-    } else if (this.flags[y][x]) {
+    if (this.flags[y][x]) {
       this.flags[y][x] = false;
-      this.unsure[y][x] = true;
     } else {
       this.flags[y][x] = true;
     }
@@ -474,6 +405,13 @@ class Game {
         const unsure = this.unsure[y][x];
         const hint = this.hints[y][x];
 
+        let unknown;
+        if (this.state === State.PLAYING && !this.solver.hasSafeCells()) {
+          unknown = "anywhere";
+        } else {
+          unknown = "unknown";
+        }
+
         let className;
         if (
           this.state === State.DEAD &&
@@ -483,9 +421,9 @@ class Game {
         ) {
           className = "known bomb";
         } else if (this.state === State.DEAD && mine) {
-          className = "unknown bomb";
+          className = `${unknown} bomb`;
         } else if (this.state === State.WIN && mine) {
-          className = "unknown bomb-win";
+          className = `${unknown} bomb-win`;
         } else if (label !== null && label > 0) {
           if (this.countdownMode) {
             const modLabel = label - this.countFlagsAround(x, y);
@@ -496,13 +434,13 @@ class Game {
         } else if (label === 0) {
           className = "known";
         } else if (flag) {
-          className = "unknown clickable flag";
+          className = `${unknown} clickable flag`;
         } else if (unsure) {
-          className = "unknown clickable unsure";
+          className = `${unknown} clickable unsure`;
         } else if (this.state === State.PLAYING) {
-          className = "unknown clickable";
+          className = `${unknown} clickable`;
         } else {
-          className = "unknown";
+          className = `${unknown}`;
         }
 
         if (hint !== null && (this.state === State.DEAD || this.debug)) {
@@ -511,6 +449,12 @@ class Game {
 
         this.cells[y][x].className = "cell " + className;
       }
+    }
+
+    if (this.state === State.PLAYING && !this.solver.hasSafeCells()) {
+      document.body.style.backgroundColor = "green";
+    } else {
+      document.body.style.backgroundColor = "blue";
     }
 
     let message;
@@ -540,9 +484,6 @@ class Game {
     this.stateElement.textContent = message;
 
     this.dumpScore();
-
-    // const undoElement = document.getElementById('undo');
-    // undoElement.disabled = !(this.debug || this.state === State.DEAD);
   }
 }
 

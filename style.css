@@ -86,6 +86,10 @@ body {
     content: "🟦";
 }
 
+.cell.anywhere::after {
+    content: "🟩";
+}
+
 /* .cell.hint::before {
     content: "";
     position: absolute;
