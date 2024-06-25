@@ -238,8 +238,7 @@ class Game {
         const shape = this.solver.anyShapeWithOneEmpty();
         mineGrid = shape.mineGridWithEmpty(x, y);
       } else {
-        // const shape = this.solver.anyShapeWithRemaining();
-        // mineGrid = shape.mineGridWithMine(x, y);
+        // Bail early for accidental clicks outside the boundary.
         return;
       }
     } else {
