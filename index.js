@@ -238,8 +238,12 @@ class Game {
         const shape = this.solver.anyShapeWithOneEmpty();
         mineGrid = shape.mineGridWithEmpty(x, y);
       } else {
-        // Bail early for accidental clicks outside the boundary.
-        return;
+        const shape = this.solver.anyShapeWithRemaining();
+        mineGrid = shape.mineGridWithMine(x, y);
+        // Bail early if revealing outside the boundary will reveal a frog.
+        if (mineGrid[y][x]) {
+          return;
+        }
       }
     } else {
       // Clicked on boundary.
