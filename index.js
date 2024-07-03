@@ -113,7 +113,12 @@ class Game {
 
   dumpScore() {
     const encoded = storage.getItem("z");
-    const decoded = JSON.parse(atob(encoded));
+    let decoded;
+    try {
+      decoded = JSON.parse(atob(encoded));
+    } catch (e) {
+      decoded = { wins: 0, loss: 0 };
+    }
 
     document.getElementById("wins").textContent = "Wins: " + decoded.wins;
     document.getElementById("loss").textContent = "Losses: " + decoded.loss;
