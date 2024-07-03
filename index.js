@@ -114,7 +114,7 @@ class Game {
 
   dumpScore() {
     const encoded = storage.getItem("z");
-    
+
     let decoded;
     try {
       decoded = JSON.parse(atob(encoded));
