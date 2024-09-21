@@ -17,7 +17,6 @@ const Hint = {
   SAFE: "SAFE",
 };
 
-
 let storage = localStorage;
 
 class Game {
