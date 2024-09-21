@@ -1,5 +1,10 @@
 /* global Sat */
 
+
+const GAME_WIDTH = 10;
+const GAME_HEIGHT = 15;
+const FROGS = 25;
+
 const State = {
   PLAYING: "PLAYING",
   WIN: "WIN",
@@ -12,6 +17,7 @@ const Hint = {
   SAFE: "SAFE",
 };
 
+
 let storage = localStorage;
 
 class Game {
@@ -20,6 +26,7 @@ class Game {
     this.height = height;
     this.numMines = numMines;
     this.map = new LabelMap(this.width, this.height);
+    //this.mines = makeGrid(this.width, this.height, false);
     this.flags = makeGrid(this.width, this.height, false);
     this.unsure = makeGrid(this.width, this.height, false);
     this.numRevealed = 0;
@@ -44,9 +51,9 @@ class Game {
     const oldState = storage.getItem("gs");
     if (oldState === null && this.numRevealed > 0) {
       console.log("Resetting game");
-      const width = 15;
-      const height = 15;
-      const numMines = 50;
+      const width = GAME_WIDTH;
+      const height = GAME_HEIGHT;
+      const numMines = FROGS;
       game = new Game(width, height, numMines);
       start(game);
       return;
@@ -113,6 +120,7 @@ class Game {
 
   dumpScore() {
     const encoded = storage.getItem("z");
+
     let decoded;
     try {
       decoded = JSON.parse(atob(encoded));
@@ -120,6 +128,7 @@ class Game {
       decoded = { wins: 0, loss: 0 };
     }
 
+    console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss);
     document.getElementById("wins").textContent = "Wins: " + decoded.wins;
     document.getElementById("loss").textContent = "Losses: " + decoded.loss;
   }
@@ -149,8 +158,15 @@ class Game {
         const cell = document.createElement("div");
         cell.className = "cell clickable unknown";
         cell.onclick = (e) => this.cellClick(e, x, y);
+        cell.onmousedown = (e) => this.cellMouseDown(e, x, y);
         cell.ondblclick = (e) => this.cellDblClick(e, x, y);
         cell.oncontextmenu = (e) => e.preventDefault();
+        if (isTouch) {
+          cell.setAttribute("data-long-press-delay", 500);
+          cell.addEventListener("long-press", (e) =>
+            this.cellLongPress(e, x, y)
+          );
+        }
         row.appendChild(cell);
         this.cells[y].push(cell);
       }
@@ -167,20 +183,42 @@ class Game {
 
   cellClick(e, x, y) {
     e.preventDefault();
-    if (!this.solver.hasSafeCells()) {
+    if (!this.safeMode) {
       this.reveal(x, y);
-    } else {
-      this.toggleFlag(x, y);
+    }
+  }
+
+  clearTimeout() {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
+  }
+
+  cellMouseDown(e, x, y) {
+    switch (e.button) {
+      case 1:
+        e.preventDefault();
+        this.revealAround(x, y);
+        break;
+      case 2:
+        e.preventDefault();
+        this.toggleFlag(x, y);
+        break;
     }
   }
 
   cellDblClick(e, x, y) {
     e.preventDefault();
-    if (this.map.labels[y][x] === null && !this.flags[y][x]) {
+    if (this.safeMode && this.map.labels[y][x] === null) {
       this.reveal(x, y);
     } else {
       this.revealAround(x, y);
     }
+  }
+
+  cellLongPress(e, x, y) {
+    this.toggleFlag(x, y);
   }
 
   revealAround(x, y) {
@@ -244,10 +282,6 @@ class Game {
       } else {
         const shape = this.solver.anyShapeWithRemaining();
         mineGrid = shape.mineGridWithMine(x, y);
-        // Bail early if revealing outside the boundary will reveal a frog.
-        if (mineGrid[y][x]) {
-          return;
-        }
       }
     } else {
       // Clicked on boundary.
@@ -279,7 +313,24 @@ class Game {
     this.refresh();
   }
 
-  hint() {}
+  hint() {
+    // if (this.state !== State.PLAYING) {
+    //   return;
+    // }
+    // let message;
+    // if (this.hasWrongFlags()) {
+    //   message = "You flagged a cell that could be empty.";
+    // } else if (this.map.boundary.length === 0) {
+    //   message = "You can play anywhere!";
+    // } else if (this.solver.hasSafeCells()) {
+    //   message = "There are safe cells.";
+    // } else if (this.solver.hasNonDeadlyCells()) {
+    //   message = "There are no safe cells, but you can guess.";
+    // } else {
+    //   message = "All surrounding cells are deadly. You need to play elsewhere.";
+    // }
+    // console.log(message);
+  }
 
   hasWrongFlags() {
     for (let y = 0; y < this.height; y++) {
@@ -337,7 +388,27 @@ class Game {
     }
   }
 
-  undo() {}
+  undo() {
+    // if (this.undoStack.length === 0) {
+    //   return;
+    // }
+    // const undos = this.undoStack.pop();
+    // for (const undo of undos) {
+    //   this.map.labels[undo.y][undo.x] = null;
+    //   this.numRevealed--;
+    //   this.flags[undo.y][undo.x] = undo.flag;
+    //   this.unsure[undo.y][undo.x] = undo.unsure;
+    // }
+    // if (this.state === State.WIN || this.state === State.DEAD) {
+    //   this.state = State.PLAYING;
+    //   this.mineGrid = null;
+    //   this.deathX = null;
+    //   this.deathY = null;
+    // }
+    // this.map.resetCache();
+    // this.recalc();
+    // this.refresh();
+  }
 
   recalc() {
     const timeStart = new Date();
@@ -371,8 +442,11 @@ class Game {
     if (!(this.state === State.PLAYING && this.map.labels[y][x] === null)) {
       return;
     }
-    if (this.flags[y][x]) {
+    if (this.unsure[y][x]) {
+      this.unsure[y][x] = false;
+    } else if (this.flags[y][x]) {
       this.flags[y][x] = false;
+      this.unsure[y][x] = true;
     } else {
       this.flags[y][x] = true;
     }
@@ -491,6 +565,9 @@ class Game {
     this.stateElement.textContent = message;
 
     this.dumpScore();
+
+    // const undoElement = document.getElementById('undo');
+    // undoElement.disabled = !(this.debug || this.state === State.DEAD);
   }
 }
 
@@ -916,9 +993,9 @@ function newGame(event) {
     event.preventDefault();
   }
 
-  const width = 15;
-  const height = 15;
-  const numMines = 50;
+  const width = GAME_WIDTH;
+  const height = GAME_HEIGHT;
+  const numMines = FROGS;
   game = new Game(width, height, numMines);
   start(game);
 }
@@ -932,16 +1009,11 @@ function start(game) {
 }
 
 function updateSize() {
-  const board = document.getElementById("world");
-  if (board.scrollWidth > window.screen.width) {
-    const factor = window.screen.width / board.scrollWidth;
-    board.style.transform = `scale(${factor})`;
-    board.style.transformOrigin = "top left";
-    board.style.height = board.scrollHeight * factor + "px";
-  } else {
-    board.style.transform = "";
-    board.style.height = "auto";
-  }
+  const world = document.getElementById("world");
+  const factor = window.screen.width / world.scrollWidth;
+  world.style.transform = `scale(${factor})`;
+  world.style.transformOrigin = "top left";
+  world.style.height = world.scrollHeight * factor + "px";
 }
 
 function hint() {
@@ -966,9 +1038,9 @@ window.addEventListener("resize", updateSize);
 try {
   game = Game.loadFromStorage();
 } catch (e) {
-  const width = 15;
-  const height = 15;
-  const numMines = 50;
+  const width = GAME_WIDTH;
+  const height = GAME_HEIGHT;
+  const numMines = FROGS;
   game = new Game(width, height, numMines);
 }
 start(game);
