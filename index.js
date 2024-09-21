@@ -1012,7 +1012,7 @@ function updateSize() {
   const factor = window.screen.width / world.scrollWidth;
   world.style.transform = `scale(${factor})`;
   world.style.transformOrigin = "top left";
-  world.style.height = world.scrollHeight * factor + "px";
+  // world.style.height = world.scrollHeight * factor + "px";
 }
 
 function hint() {
