@@ -160,7 +160,7 @@ class Game {
         cell.ondblclick = (e) => this.cellDblClick(e, x, y);
         cell.oncontextmenu = (e) => e.preventDefault();
         if (isTouch) {
-          cell.setAttribute("data-long-press-delay", 500);
+          cell.setAttribute("data-long-press-delay", 180);
           cell.addEventListener("long-press", (e) =>
             this.cellLongPress(e, x, y)
           );
