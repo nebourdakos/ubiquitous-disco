@@ -1,5 +1,9 @@
 /* global Sat */
 
+const GAME_WIDTH = 15;
+const GAME_HEIGHT = 15;
+const FROGS = 50;
+
 const State = {
   PLAYING: "PLAYING",
   WIN: "WIN",
@@ -45,9 +49,9 @@ class Game {
     const oldState = storage.getItem("gs");
     if (oldState === null && this.numRevealed > 0) {
       console.log("Resetting game");
-      const width = 15;
-      const height = 15;
-      const numMines = 50;
+      const width = GAME_WIDTH;
+      const height = GAME_HEIGHT;
+      const numMines = FROGS;
       game = new Game(width, height, numMines);
       start(game);
       return;
@@ -402,6 +406,16 @@ class Game {
     // this.map.resetCache();
     // this.recalc();
     // this.refresh();
+  }
+
+  seed() {
+    this.undoStack.push([]);
+    const shape = this.solver.anyShapeWithOneEmpty();
+    const x = Math.floor(Math.random() * GAME_WIDTH);
+    const y = Math.floor(Math.random() * GAME_HEIGHT);
+    const mineGrid = shape.mineGridWithEmpty(x, y);
+    this.floodReveal(x, y, mineGrid);
+    this.recalc();
   }
 
   recalc() {
@@ -974,10 +988,15 @@ function newGame(event) {
     event.preventDefault();
   }
 
-  const width = 15;
-  const height = 15;
-  const numMines = 50;
+  const width = GAME_WIDTH;
+  const height = GAME_HEIGHT;
+  const numMines = FROGS;
   game = new Game(width, height, numMines);
+  game.seed();
+  while (game.numRevealed < 0.06 * GAME_WIDTH * GAME_WIDTH) {
+    game = new Game(width, height, numMines);
+    game.seed();
+  }
   start(game);
 }
 
@@ -1024,9 +1043,9 @@ window.addEventListener("resize", updateSize);
 try {
   game = Game.loadFromStorage();
 } catch (e) {
-  const width = 15;
-  const height = 15;
-  const numMines = 50;
+  const width = GAME_WIDTH;
+  const height = GAME_HEIGHT;
+  const numMines = FROGS;
   game = new Game(width, height, numMines);
 }
 start(game);
