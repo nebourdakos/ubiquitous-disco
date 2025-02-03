@@ -103,14 +103,17 @@ class Game {
     try {
       decoded = JSON.parse(atob(encoded));
     } catch (e) {
-      decoded = { wins: 0, loss: 0 };
+      decoded = { wins: 0, loss: 0, currentstreak: 0, longeststreak: 0};
     }
 
     if (win) {
       decoded.wins = (decoded.wins ?? 0) + 1;
+      decoded.currentstreak = (decoded.currentstreak ?? 0) + 1;
+      decoded.longeststreak = Math.max(decoded.longeststreak ?? 0, decoded.currentstreak);
     } else {
       decoded.loss = (decoded.loss ?? 0) + 1;
-    }
+      decoded.currentstreak = 0;
+   }
 
     const encoded2 = btoa(JSON.stringify(decoded));
     storage.setItem("z", encoded2);
@@ -123,12 +126,14 @@ class Game {
     try {
       decoded = JSON.parse(atob(encoded));
     } catch (e) {
-      decoded = { wins: 0, loss: 0 };
+      decoded = { wins: 0, loss: 0, currentstreak: 0, longeststreak: 0};
     }
 
-    console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss);
+    console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss + ", Current Streak: " + decoded.currentstreak + ", Longest Streak:" + decoded.longeststreak);
     document.getElementById("wins").textContent = "Wins: " + decoded.wins;
-    document.getElementById("loss").textContent = "Losses: " + decoded.loss;
+    //document.getElementById("loss").textContent = "Losses: " + decoded.loss;
+    document.getElementById("currentstreak").textContent = "Current Streak: " + decoded.currentstreak;
+    document.getElementById("longeststreak").textContent = "Longest Streak: " + decoded.longeststreak;
   }
 
   clearStorage() {
