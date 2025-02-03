@@ -130,7 +130,7 @@ class Game {
     }
 
     console.log("Wins: " + decoded.wins + ", Losses: " + decoded.loss + ", Current Streak: " + decoded.currentstreak + ", Longest Streak:" + decoded.longeststreak);
-    //document.getElementById("wins").textContent = "Wins: " + decoded.wins;
+    document.getElementById("wins").textContent = "Wins: " + decoded.wins;
     //document.getElementById("loss").textContent = "Losses: " + decoded.loss;
     document.getElementById("currentstreak").textContent = "Current Streak: " + decoded.currentstreak;
     document.getElementById("longeststreak").textContent = "Longest Streak: " + decoded.longeststreak;
